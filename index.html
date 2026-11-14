@@ -183,7 +183,7 @@ section{display:none}section.on{display:block}
 <script>
 /* ===== ПОДКЛЮЧЕНИЕ АККАУНТОВ (см. SETUP.md) =====
    Впишите адрес проекта Supabase и публичный ключ (anon key) между кавычками. */
-const SB_URL="",SB_KEY="",SB_DOMAIN="gmail.com";
+const SB_URL="https://mrhbojlsjxchbzzayrut.supabase.co/rest/v1/",SB_KEY="sb_publishable_qi0BxDa5TdOmKkGqowQrBg_Dg3cWbk5",SB_DOMAIN="gmail.com";
 /* ================================================= */
 const KEY="planner-v1",ST=["Идея","Заказано","Готово к дарению","Подарено"];
 let S={tasks:[],cats:[{n:"Проекты",c:"#3b82f6"},{n:"Работа",c:"#8b5cf6"},{n:"Дом",c:"#10a37f"},{n:"Подарки",c:"#f59e0b"}],habits:[],bd:[],ach:{},awk:{},hid:{},bdyr:{},since:"",dates:[{id:"me",t:"Мой день рождения",d:"2000-09-04",y:1,e:"🎂"}],eggs:0,order:null,rest:{a:10,b:20,thr:90,show:1},quiet:{on:0,a:"23:00",b:"07:00"},manual:[],exams:[],dayst:{},sorder:{},nmin:{},shop:[],bought:0,lc:0,pdt:{},meals:[["Обед","13:30","14:15"],["Ужин","18:30","19:15"]],xlog:[],goalDays:{},goal:{n:3},lvl:0,events:[],gym:{days:[1,3,5],s:"19:30",e:"22:30",skip:{}},pomo:{f:25,s:5,l:15,n:4},uni:{start:"",end:"",cls:[]},blog:{posts:[],last:""},wheel:[{id:"w1",n:"Дом",t:["Протереть пыль","Разобрать один ящик","Помыть зеркала"]},{id:"w2",n:"Творчество",t:["Набросать скетч","Записать 5 идей для постов"]},{id:"w3",n:"Забота о себе",t:["Маска для лица","Прогулка 20 минут","Растяжка 10 минут"]},{id:"w4",n:"Учёба",t:["Повторить конспект 20 минут","Составить план к дедлайну"]}],win:{wd:[["07:00","09:00"],["19:00","22:00"]],we:[["10:00","14:00"],["16:00","20:00"]]}};
@@ -711,14 +711,20 @@ function extra9(){
   $("warns").innerHTML=LAST.unsched.map(u=>`<div class="wc">⚠️ <b>${esc(u.t.title)}</b>: ${u.late?"дедлайн уже прошёл":`не успевает к ${pd(u.t.dl).toLocaleDateString("ru",{day:"numeric",month:"long"})}, не хватает ${fmin(u.rem)}`}. Освободите время, сдвиньте дедлайн или добавьте свободные окошки.</div>`).join("")+(LAST.over||[]).map(w=>`<div class="wc">⚠️ ${w}</div>`).join("");
   $("ra").value=S.rest.a;$("rbb").value=S.rest.b;$("rt").value=S.rest.thr;$("rs").checked=!!S.rest.show;$("qon").checked=!!S.quiet.on;$("qa").value=S.quiet.a;$("qb").value=S.quiet.b}
 const LSG=k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}},LSS=(k,v)=>{try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-const cfg=()=>{const o=LSG("planner-sbcfg")||{};return{url:String(SB_URL||o.url||"").trim().replace(/\/+$/,""),key:String(SB_KEY||o.key||"").trim()}};
+const normUrl=u=>{u=String(u||"").trim().replace(/^["'`]+|["'`]+$/g,"");if(!u)return"";if(/^[a-z0-9]{20}$/i.test(u))u+=".supabase.co";if(!/^https?:\/\//i.test(u))u="https://"+u;try{return new URL(u).origin}catch(e){return u.replace(/\/+$/,"")}};
+const cfg=()=>{const o=LSG("planner-sbcfg")||{};return{url:normUrl(SB_URL||o.url),key:String(SB_KEY||o.key||"").replace(/\s+/g,"").replace(/^["'`]+|["'`]+$/g,"")}};
+const cfgCheck=c=>{if(!c.url||!c.key)return"Укажите адрес проекта и публичный ключ";let h="";try{h=new URL(c.url).hostname}catch(e){return"Адрес проекта указан неверно"}
+  if(/supabase\.com$/i.test(h))return"Это адрес панели управления. Нужен Project URL вида https://xxxx.supabase.co (раздел Project Settings → Data API)";
+  if(/^sb_secret_/.test(c.key))return"Это секретный ключ, его нельзя использовать. Нужен публичный: anon public или Publishable key";
+  try{const pl=JSON.parse(atob(c.key.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));if(pl.role==="service_role")return"Это секретный ключ service_role, его нельзя использовать. Нужен публичный anon public"}catch(e){}
+  if(!/^(eyJ|sb_publishable_)/.test(c.key))return"Ключ выглядит неверно: публичный ключ начинается с eyJ… или sb_publishable_…";return""};
 const CL={sess:LSG("planner-sess"),state:"idle",msg:"",last:0,base:LSG("planner-base")||0,lh:LSG("planner-lh")||0,timer:null,pend:null,mode:"",busy:false};
 const VOL=["ts","coll","lvl","since","nextPop","nrem","lastTab","hid","ach","awk","bdyr","goalDays","nmin","eggs","dawn","bought","lc","pdt"];
 const pjo=o=>{o={...o};VOL.forEach(k=>delete o[k]);o.manual=(o.manual||[]).filter(m=>m.d>=todayS());return JSON.stringify(o)};
 const pj=()=>pjo(S);
 const uni=(a,b)=>{const o={...a};for(const k in b)o[k]=typeof b[k]==="number"&&typeof a[k]==="number"?Math.max(a[k],b[k]):b[k];return o};
 const mail=l=>{l=l.trim().toLowerCase();return l.includes("@")?l:l.replace(/[^a-z0-9._-]/g,c=>"_"+c.charCodeAt(0).toString(16)+"_")+"@"+SB_DOMAIN};
-const ruErr=m=>{m=String(m||"");if(/invalid login/i.test(m))return"Неверный логин или пароль";if(/already registered|already been registered/i.test(m))return"Такой логин уже занят";if(/at least/i.test(m))return"Пароль должен быть не короче 6 символов";if(m==="confirm")return"В Supabase нужно отключить подтверждение почты (Confirm email), см. SETUP.md";if(/Failed to fetch|NetworkError|Load failed|fetch/i.test(m))return"Нет связи с сервером";return m};
+const ruErr=m=>{m=String(m||"");if(/invalid login/i.test(m))return"Неверный логин или пароль";if(/already registered|already been registered/i.test(m))return"Такой логин уже занят";if(/at least/i.test(m))return"Пароль должен быть не короче 6 символов";if(m==="confirm")return"В Supabase нужно отключить подтверждение почты (Confirm email), см. SETUP.md";if(/invalid path/i.test(m))return"Неверный адрес проекта. Нужен только Project URL вида https://xxxx.supabase.co, без /rest/v1 и других добавок. Проверьте его в ⚙️ → Аккаунт";if(/api key|apikey/i.test(m))return"Неверный публичный ключ: проверьте anon public / Publishable key";if(/Failed to fetch|NetworkError|Load failed|fetch/i.test(m))return"Нет связи с сервером или неверный адрес проекта";return m};
 async function sbAuth(path,body){const c=cfg(),r=await fetch(c.url+"/auth/v1/"+path,{method:"POST",headers:{apikey:c.key,"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.msg||j.error_description||j.message||j.error||"Ошибка "+r.status);return j}
 function setSess(j,login){if(!j.access_token)throw new Error("confirm");CL.sess={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,uid:(j.user||{}).id||(CL.sess||{}).uid,login};LSS("planner-sess",CL.sess)}
 async function token(){const s=CL.sess;if(!s)return null;if(s.exp-60000>Date.now())return s.at;
@@ -746,7 +752,8 @@ async function syncNow(){if(!CL.sess||CL.busy)return;CL.busy=true;CL.state="sync
   catch(e){CL.state="err";CL.msg=e.message==="nologin"?"Войдите снова":ruErr(e.message)}
   CL.busy=false;cloudUI()}
 window.__cp=()=>{if(!CL.sess)return;clearTimeout(CL.timer);CL.timer=setTimeout(syncNow,2500)};
-async function doAuth(signup){const l=$("cl-l").value.trim(),p=$("cl-p").value;
+async function doAuth(signup){const l=$("cl-l").value.trim(),p=$("cl-p").value,bad=cfgCheck(cfg());
+  if(bad){CL.msg=bad;cloudUI();return}
   if(!l||p.length<6||mail(l).split("@")[0].length>60){CL.msg=!l?"Введите логин":p.length<6?"Пароль должен быть не короче 6 символов":"Логин слишком длинный";cloudUI();return}
   CL.state="sync";CL.msg="";cloudUI();
   try{const j=await sbAuth(signup?"signup":"token?grant_type=password",{email:mail(l),password:p});setSess(j,l);CL.mode="";CL.base=0;CL.lh=0;LSS("planner-base",null);LSS("planner-lh",null);
@@ -762,7 +769,7 @@ function cloudUI(){const c=cfg(),mode=!c.url||!c.key?"cfg":CL.sess?"in":"out";
 document.addEventListener("click",e=>{const id=e.target.id;
   if(id==="cl-in")doAuth(false);else if(id==="cl-up")doAuth(true);else if(id==="csync")syncNow();
   else if(id==="cl-out"){CL.sess=null;LSS("planner-sess",null);CL.mode="";CL.state="idle";CL.msg="";CL.base=0;CL.lh=0;LSS("planner-base",null);LSS("planner-lh",null);cloudUI()}
-  else if(id==="cl-cfg"){const u=$("cl-u").value.trim(),k=$("cl-k").value.trim();if(!/^https?:\/\//.test(u)||!k){CL.msg="Укажите адрес (https://…) и ключ";cloudUI();return}LSS("planner-sbcfg",{url:u,key:k});CL.msg="";CL.mode="";cloudUI()}
+  else if(id==="cl-cfg"){const u=normUrl($("cl-u").value),k=$("cl-k").value.replace(/\s+/g,""),bad=cfgCheck({url:u,key:k});if(bad){CL.msg=bad;cloudUI();return}LSS("planner-sbcfg",{url:u,key:k});CL.msg="";CL.mode="";cloudUI()}
   else if(id==="cloud"){$("setp").style.display="";$("gear").classList.add("open");$("acc").scrollIntoView({behavior:"smooth",block:"center"})}});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="cl-p")doAuth(false)});
 const syncTick=()=>{if(CL.sess&&document.visibilityState==="visible")syncNow()};
